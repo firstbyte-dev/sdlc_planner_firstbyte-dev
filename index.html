@@ -263,14 +263,19 @@ const fmtSize = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024)
 const readAs = (file, how) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; how === 'text' ? r.readAsText(file) : r.readAsDataURL(file); });
 const TEXT_RE = /\.(txt|md|csv|json|html?|css|js|jsx|ts|tsx|xml|ya?ml|sql|py|log|ini)$/i;
 
-const TYPES = ['Website Portofolio Pribadi', 'Landing Page Perusahaan / B2B', 'Promotional Landing Page', 'Company Profile & Web App', 'Website E-Commerce (Toko Online)', 'Website Berita dan Media Informasi (News & Content Portal)', 'Blog Pribadi / Niche Blog', 'Website Edukasi & E-Learning (LMS)', 'Website Komunitas dan Forum Diskusi', 'Aplikasi Berbasis Web (Web Application / SaaS)'];
-const STACKS = ['Next.js (App Router & React)', 'React & TypeScript', 'Vue / Nuxt', 'Tailwind CSS', 'Framer Motion / GSAP', 'HTML5, CSS3 & Vanilla JS', 'Node.js / REST API / Supabase', 'Git, GitHub & Vercel / GitHub Pages', 'Figma (UI/UX & Design System)'];
-const METHODS = ['Agile / Iterative Sprint (MVP dulu lalu penyempurnaan)', 'Kanban (To-Do, In Progress, Done)', 'Mobile-First & Component-Driven Design', 'AI-Assisted Vibe Coding + Manual Code Review'];
-const SECS = ['Hero Section Utama', 'Profil / Tentang / Pendidikan', 'Layanan / Pengalaman Kerja', 'Keahlian / Portofolio Proyek', 'Kontak & Footer'];
-const STYLES = ['Minimalis', 'Flat Design', 'Glassmorphism', 'Neumorphism (Soft UI)', 'Claymorphism', 'Brutalism / Neo-Brutalism', 'Typography-Driven', 'Editorial', 'Retro & Vintage', 'Ilustrasi / Freehand', 'Dark Mode'];
-const SCROLLS = ['Standard Vertical Scroll', 'Horizontal Scroll', 'Infinite Scroll', 'Parallax Scrolling', 'Scroll-Triggered Animations', 'Scroll Snapping', 'Long Scrolling (storytelling)', 'Immersive 3D Scroll (Three.js / GSAP ScrollTrigger / Spline)'];
-const LAYOUTS = ['Responsive Design', 'Adaptive Design', 'Fluid (Liquid) Design', 'Single Page', 'Statis', 'Dinamis'];
-const NAVIGASI = ['Top Navigation Bar', 'Side Navigation / Sidebar', 'Bottom Navigation Bar', 'Hamburger Menu', 'Sticky Navigation', 'Floating Action Button (FAB)', 'Tab-Based Navigation', 'Mega Menu / Dropdown Menu','Overlay','Push','Reveal','Icon Rail','Expanding','Accordion','Two Level','Floating'];
+const TYPES = ['Website Portofolio Pribadi', 'Landing Page Perusahaan / B2B', 'Promotional Landing Page', 'Company Profile & Web App', 'Website E-Commerce (Toko Online)', 'Website Berita dan Media Informasi (News & Content Portal)', 'Blog Pribadi / Niche Blog', 'Website Edukasi & E-Learning (LMS)', 'Website Komunitas dan Forum Diskusi', 'Aplikasi Berbasis Web (Web Application / SaaS)','Others'];
+const STACKS = ['HTML5, CSS3 & Vanilla JS', 'Tailwind CSS', 'Vue / Nuxt', 'React & TypeScript', 'Framer Motion / GSAP', 'Next.js (App Router & React)', 'Node.js / REST API / Supabase', 'Git, GitHub & Vercel / GitHub Pages', 'Figma (UI/UX & Design System)','Others'];
+const METHODS = ['Agile / Iterative Sprint (MVP dulu lalu penyempurnaan)', 'Kanban (To-Do, In Progress, Done)', 'Mobile-First & Component-Driven Design', 'AI-Assisted Vibe Coding + Manual Code Review','Others'];
+const SECS = ['Hero Section Utama', 'Profil / Tentang / Pendidikan', 'Layanan / Pengalaman Kerja', 'Keahlian / Portofolio Proyek', 'Kontak & Footer','Others'];
+const STYLES = ['Minimalis', 'Flat Design', 'Glassmorphism', 'Neumorphism (Soft UI)', 'Claymorphism', 'Brutalism / Neo-Brutalism', 'Typography-Driven', 'Editorial', 'Retro & Vintage', 'Ilustrasi / Freehand', 'Dark Mode','Others'];
+const SCROLLS = ['Standard Vertical Scroll', 'Horizontal Scroll', 'Infinite Scroll', 'Parallax Scrolling', 'Scroll-Triggered Animations', 'Scroll Snapping', 'Long Scrolling (storytelling)', 'Immersive 3D Scroll (Three.js / GSAP ScrollTrigger / Spline)','Others'];
+const LAYOUTS = ['Responsive Design', 'Adaptive Design', 'Fluid (Liquid) Design', 'Single Page', 'Statis', 'Dinamis','Others'];
+const NAVIGASI = ['Top Navigation Bar', 'Side Navigation / Sidebar', 'Bottom Navigation Bar', 'Hamburger Menu', 'Sticky Navigation', 'Floating Action Button (FAB)', 'Tab-Based Navigation', 'Mega Menu / Dropdown Menu','Others'];
+const GOALS = ['Branding / personal brand', 'Menjual produk / jasa', 'Mendapatkan leads / kontak', 'Edukasi / informasi', 'Membangun komunitas', 'Mengumpulkan pendaftar / user', 'Membuat portofolio / showcase', 'Mendapatkan donasi / crowdfunding', 'Membuat blog / publikasi', 'Membuat forum diskusi / komunitas online','Manage Keuangan / Akuntansi','Membuat dashboard / analitik','Membuat aplikasi SaaS / Web App','Others'];
+const FITUR = ['Formulir Kontak / Hubungi Kami', 'Peta Lokasi / Google Maps', 'Integrasi Media Sosial', 'Integrasi Newsletter / Email Marketing', 'Integrasi Payment Gateway / Pembayaran Online', 'Fitur Pencarian & Filter Produk / Konten', 'Filter & Sortir Produk / Konten', 'Fitur Login / Registrasi Pengguna', 'Fitur Keranjang Belanja & Checkout', 'Fitur Wishlist / Favorit', 'Fitur Ulasan & Rating Produk', 'Fitur Notifikasi', 'Fitur Multi-Bahasa / Internasionalisasi (i18n)', 'Fitur Live Chat / Chatbot', 'Fitur Kalender & Jadwal Acara', 'Fitur Galeri Foto & Video', 'Fitur Blog / Artikel / Berita', 'Fitur Forum Diskusi / Komunitas Online', 'Dashboard admin / CMS', 'Komentar / diskusi', 'Kursus, materi & progres belajar','Multi-bahasa & internasionalisasi', 'Fitur berbagi sosial media','Others'];
+const INTERACTIONS = ['Hover Effects', 'Click / Tap Animations', 'Scroll-Triggered Animations', 'Drag & Drop Interactions', 'Swipe Gestures', 'Parallax Scrolling Effects', 'Modal / Popup Windows', 'Accordion / Expandable Sections', 'Carousel / Slider Components', 'Infinite Scroll','Hero Entrance / Staggered Animation', 'Fade-In & Slide-Up on Scroll (Scroll Reveal)', 'Micro-interactions (Hover & Active States)', 'Sticky / Glassmorphism Navigation Bar', 'Skeleton Loading / Preloader','Hero Entrance / Staggered Animation', 'Fade-In & Slide-Up on Scroll (Scroll Reveal)', 'Micro-interactions (Hover & Active States)', 'Sticky / Glassmorphism Navigation Bar', 'Others']
+const SUBJECT = ['Cropping & Framing', 'Color Grading & Filters', 'Background Removal / Isolation', 'Retouching & Skin Smoothing', 'HDR & Exposure Blending', 'Panorama Stitching', 'Black & White Conversion', 'Lens Correction & Distortion Fix', 'Noise Reduction & Sharpening', 'Creative Compositing / Collage','Others'];
+const OBJECT = ['Clean-up & Isolation','Perspective & Scaling','Badges & Callouts','Color Consistency','Shadows & Reflections','Color Correction & Grading', 'Background Replacement', 'Retouching & Enhancement', 'HDR & Exposure Blending', 'Panorama Stitching', 'Black & White Conversion', 'Lens Correction & Distortion Fix', 'Noise Reduction & Sharpening', 'Creative Compositing / Collage','Others'];
 
 const TPL = {
   'Security Audit (pre-launch)': 'Berperanlah sebagai application security engineer yang audit pre-launch codebase ini. Review: autentikasi & session, otorisasi (user A bisa akses data user B?), secret/key/token hardcoded atau terekspos di client, injection (SQL/NoSQL/command/XSS), API route tanpa proteksi/validasi, input validation & sanitization, rate limiting/brute force, IDOR, CORS longgar/security header hilang/cookie flag tidak aman, dependency rentan, data sensitif bocor ke log/error. Tiap temuan: Severity (Critical/High/Medium/Low), file & baris, cara eksploitasi nyata, fix kode pasti. Urutkan berdasarkan severity. Jika satu kategori bersih, katakan eksplisit. JANGAN ubah kode sebelum saya approve.',
@@ -289,8 +294,8 @@ const PAGES = [
     A('summary', 'Ringkasan Singkat (produk apa & untuk siapa)', 'Jelaskan singkat produk ini dan untuk siapa'),
     F('summary_files', 'Lampiran Ringkasan (opsional, file apa pun)'),
     H('Tech Stack & Metode'),
-    C('stack', 'Tech Stack', STACKS, [STACKS[0], STACKS[1], STACKS[3], STACKS[7], STACKS[8]]),
-    C('method', 'Metode Kerja', METHODS, [METHODS[0], METHODS[2], METHODS[3]]),
+    C('stack', 'Tech Stack', STACKS, [STACKS[0],STACKS[1]]),
+    C('method', 'Metode Kerja', METHODS, ['']),
     A('plan_note', 'Catatan Tambahan Perencanaan & Stack', 'Stack lain, batasan teknis, alur kerja...', '', 2),
   ] },
   { n: 'Tujuan, Audiens & Kebutuhan', h: 'Problem, Goals, Target User & Kebutuhan Pelengkap', f: [
@@ -299,7 +304,7 @@ const PAGES = [
     A('evidence', 'Bukti / Dasar Riset', 'Riset pengguna, feedback, analitik, observasi langsung', '', 2),
     H('Goals'),
     A('goals', 'Target Penyelesaian (satu baris per target)', 'Contoh: menyampaikan nilai utama dengan jelas\nMemudahkan pengunjung menghubungi'),
-    C('goal_type', 'Tujuan Utama Website', ['Branding / personal brand', 'Menjual produk / jasa', 'Mendapatkan leads / kontak', 'Edukasi / informasi', 'Membangun komunitas', 'Mengumpulkan pendaftar / user']),
+    C('goal_type', 'Tujuan Utama Website', GOALS,''),
     H('Target User'),
     T('segment', 'Segmen / Peran', 'Pengunjung umum, perekrut, calon klien, admin...'),
     A('pain', 'Pain Points', 'Hambatan yang sering dialami', '', 2),
@@ -310,8 +315,8 @@ const PAGES = [
     T('references', 'Website Referensi (link / nama)'),
     T('timeline', 'Target Waktu Selesai', 'Contoh: 2 minggu / akhir bulan'),
     S('hosting', 'Domain & Hosting', ['Belum ditentukan', 'GitHub Pages (gratis)', 'Vercel / Netlify (gratis)', 'Domain & hosting sendiri (.com / .id)']),
-    C('feats', 'Fitur Khusus', ['Login & registrasi user', 'Dashboard admin / CMS', 'Keranjang & checkout', 'Pencarian & filter', 'Kategori & tag', 'Komentar / diskusi', 'Kursus, materi & progres belajar', 'Notifikasi']),
-    C('ints', 'Integrasi & Layanan Pihak Ketiga', ['Tombol WhatsApp', 'Google Analytics', 'Google Maps', 'Form kontak / email', 'Payment gateway', 'Newsletter / email marketing', 'SEO dasar & meta tag', 'Link media sosial']),
+    C('feats', 'Fitur Khusus', FITUR,''),
+    C('ints', 'Integrasi & Layanan Pihak Ketiga', [['Tombol WhatsApp'], 'Google Analytics', 'Google Maps',['Form kontak / email'], 'Payment gateway', 'Newsletter / email marketing', 'SEO dasar & meta tag', 'Link media sosial']),
     C('assets', 'Aset yang Sudah Tersedia', ['Logo sudah ada', 'Foto sudah ada', 'Teks / copywriting sudah siap', 'Belum ada aset (buatkan placeholder)']),
     A('avoid', 'Hal yang TIDAK Diinginkan', 'Contoh: jangan terlalu ramai, hindari pop-up...', '', 2),
     A('extra', 'Pertanyaan / Catatan Lain untuk AI', '', '', 2),
@@ -319,7 +324,6 @@ const PAGES = [
   { n: 'PRD & Konten', h: 'Struktur Section, Fitur, Scope & Requirements', f: [
     H('Struktur Section'),
     C('sections', 'Section Terpilih', SECS, SECS),
-    C('extras', 'Fitur Tambahan', ['Multi-Bahasa (ID / EN)']),
     H('Pembagian Fitur', 'mvp'),
     A('V1 / MVP', 'V1 / MVP (Rilis Awal Wajib)', 'Satu fitur per baris', '', 3),
     A('V2', 'V2 (Iterasi Berikutnya)', '', '', 2),
@@ -348,37 +352,36 @@ const PAGES = [
   ] },
   { n: 'Spesifikasi UI/UX', h: 'Desain, Scroll, Layout, Komponen & Aksesibilitas', f: [
     C('theme', 'Mode Tema', ['Light / Dark Mode Switch']),
-    C('navi', 'Navigasi', NAVIGASI, ['Side Navigation / Sidebar']),
+    C('navi', 'Navigasi', NAVIGASI, ['Top Navigation Bar']),
     H('Warna'),
     L('Tools Warna', [['Realtime Colors', 'https://www.realtimecolors.com/'], ['Coolors', 'https://coolors.co/'], ['Color Hunt', 'https://colorhunt.co/'], ['Adobe Color', 'https://color.adobe.com/'], ['WebAIM Contrast', 'https://webaim.org/resources/contrastchecker/']]),
     T('palette', 'Kode HEX Palet Warna', '#000000, #ffffff, #1a1a1a, #d4d4d4'),
     A('color_note', 'Catatan Warna & Tipografi', 'Font, kontras teks, nuansa warna...', '', 2),
     H('Visual,Scroll dan Layout'),
-    C('ui_style', 'Gaya Desain Visual (UI Style)', STYLES, ['Glassmorphism']),
-    C('scroll', 'Tipe Scroll', SCROLLS, [SCROLLS[0], SCROLLS[4]]),
+    C('ui_style', 'Gaya Desain Visual (UI Style)', STYLES, ['Minimalis']),
+    C('scroll', 'Tipe Scroll', SCROLLS, [SCROLLS[0]]),
     C('layout', 'Struktur & Tata Letak', LAYOUTS, ['Responsive Design', 'Single Page']),
     H('Animasi & Interaksi'),
-    C('anim', 'Efek Visual & Animasi', ['Hero Entrance / Staggered Animation', 'Fade-In & Slide-Up on Scroll (Scroll Reveal)', 'Micro-interactions (Hover & Active States)', 'Sticky / Glassmorphism Navigation Bar', 'Skeleton Loading / Preloader'], ['Hero Entrance / Staggered Animation', 'Fade-In & Slide-Up on Scroll (Scroll Reveal)', 'Micro-interactions (Hover & Active States)', 'Sticky / Glassmorphism Navigation Bar']),
+    C('anim', 'Efek Visual & Animasi', INTERACTIONS,''),
     C('hier', 'Prinsip Tata Letak', ['Visual Hierarchy', 'Grid System (12-Column)', 'Whitespace', 'Above the Fold'], ['Visual Hierarchy', 'Grid System (12-Column)', 'Whitespace', 'Above the Fold']),
-    C('comp', 'Komponen Fungsional', ['Social Proof & Trust Indicators', 'Responsive Breakpoints', 'Sticky CTA / Floating Action Button'], ['Social Proof & Trust Indicators', 'Responsive Breakpoints']),
+    C('comp', 'Komponen Fungsional', ['Social Proof & Trust Indicators Pada UI/UX', 'Responsive Breakpoints Pada UI/UX', 'Sticky CTA / Floating Action Button'], ['Social Proof & Trust Indicators', 'Responsive Breakpoints']),
     H('Dokumen Desain'),
-    A('principles', 'Design Principles (3 atau lebih aturan wajib)', '', '1. Kejelasan di Atas Estetika (Clarity over Aesthetics)\n2. Konsistensi Komponen & Pola (Consistency)\n3. Keterbacaan & Kepastian (Readability & Certainty)\n4. Pencegahan Kesalahan & Umpan Balik Cepat (Error Prevention & Feedback)', 2),
-    A('visual_dir', 'Visual Direction (mood, referensi, yang dihindari)', '', 'Mood (Nuansa / Kata Kunci Rasa ): Trustworthy (tetap terasa aman dan profesional)\nReferensi (Visual References): Wise / Monzo\n Yang Dihindari (What to Avoid / Anti-Goals):  Hindari kesan korporat kaku', 2),
+    A('principles', 'Design Principles (3 atau lebih aturan wajib)', '', '', 2),
+    A('visual_dir', 'Visual Direction (mood, referensi, yang dihindari)', '', '', 2),
     A('tokens', 'Design Tokens (palet + hex, skala tipografi, spacing, radius, shadow)', 'Design Tokens adalah variabel bernama yang menyimpan nilai keputusan desain terkecil', '', 3),
-    A('screens', 'Screen Inventory (tiap screen + tujuannya)', '', 'SCR-01	Beranda / Jelajah Event\nSCR-02	Detail Event\nSCR-03 Pilih Tiket & Isi Data\nSCR-04 Pembayaran (Checkout)\nSCR-05 Tiket Saya (E-Ticket)\nSCR-06 Profil Pengguna\nSCR-07 Settings', 3),
+    A('screens', 'Screen Inventory (tiap screen + tujuannya)', '', '', 3),
     A('flow', 'User Flow (langkah demi langkah tiap journey utama)', 'Jika Screen Inventory adalah daftar ruangannya, maka User Flow adalah rute jalan yang menghubungkan ruangan-ruangan tersebut agar pengguna tidak tersesat saat menggunakan fitur.', '', 3),
     { ...A('layout_screen', 'Layout per Screen (section, hierarki, primary section, komponen)', '', '', 3), i: 'layout' },
     A('components', 'Component Library (komponen reusable + variant & state )', '', '', 3),
     { ...A('states', 'State: empty, loading, error, success, offline', '', '', 2), i: 'states' },
-    A('responsive', 'Responsive Behaviour (mobile, tablet, desktop)', '', 'Mobile (< 640px / 360px - 430px)\nTablet (640px - 1024px)\nDesktop (> 1024px / 1280px - 1440px)', 2),
+    A('responsive', 'Responsive Behaviour (mobile, tablet, desktop)', '', '', 2),
     { ...A('a11y', 'Accessibility (rasio kontras, focus order, keyboard nav, ARIA)', '', '', 2), i: 'a11y' },    A('ui_note', 'Catatan Tambahan UI/UX / Animasi', '', '', 2),
-    L('Inspirasi Desain', [['UI Style Guide', 'https://www.uistyleguide.com/'], ['Website Design Styles', 'https://www.appliedaiacademy.app/resources/website-design-styles'], ['One Page Love', 'https://onepagelove.com/style/glassmorphism'], ['Siteinspire', 'https://www.siteinspire.com/'], ['A1 Gallery', 'https://www.a1.gallery/'], ['Recent Design', 'https://recent.design/?ref=godly&category=web'], ['Dribbble', 'https://dribbble.com/tags/web-design-inspiration'], ['Land-book', 'https://land-book.com/'], ['Awwwards', 'https://www.awwwards.com/']]),
-  ] },
-  { n: 'Media & Aset Visual', h: 'Foto Subjek (Orang) & Foto Objek', f: [
-    N('Foto hanya disimpan sebagai pratinjau; file .txt hasil download hanya memuat keterangannya.'),
-    { t: 'media' },
+    H('SUBJECT & OBJECT PHOTO'),
+    C('subject', 'Jenis Foto Subjek (Orang)', SUBJECT, ''),
+    C('object', 'Jenis Foto Objek (Produk / Barang)', OBJECT, ''),
     A('subject_note', 'Catatan posisi foto subjek', '', '', 2),
     A('object_note', 'Catatan posisi foto objek', '', '', 2),
+    L('Inspirasi Desain', [['UI Style Guide', 'https://www.uistyleguide.com/'], ['Website Design Styles', 'https://www.appliedaiacademy.app/resources/website-design-styles'], ['One Page Love', 'https://onepagelove.com/style/glassmorphism'], ['Siteinspire', 'https://www.siteinspire.com/'], ['A1 Gallery', 'https://www.a1.gallery/'], ['Recent Design', 'https://recent.design/?ref=godly&category=web'], ['Dribbble', 'https://dribbble.com/tags/web-design-inspiration'], ['Land-book', 'https://land-book.com/'], ['Awwwards', 'https://www.awwwards.com/']]),
   ] },
   { n: 'QA & Rilis', h: 'Pengujian, Peluncuran & Template Lanjutan', f: [
     C('qa', 'Checklist Pengujian & Peluncuran', ['Cek tampilan responsif (HP, Tablet, Desktop)', 'Uji tombol, link, bahasa, & tema', 'Push kode ke GitHub / Deploy', 'Verifikasi link publik di mode Incognito']),
