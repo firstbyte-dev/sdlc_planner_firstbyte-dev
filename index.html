@@ -135,6 +135,18 @@ const api = SB ? {
     const { data, error } = await SB.from('projects').insert(row).select('id').single(); if (error) throw error; return data.id;
   },
   async remove(id) { const { error } = await SB.from('projects').delete().eq('id', id); if (error) throw error; },
+  async remove(id) {
+    try { const { data } = await SB.from('projects').select('form').eq('id', id).single(); const ps = Object.values((data && data.form) || {}).filter(Array.isArray).flat().map((f) => f && f.path).filter(Boolean); if (ps.length) await SB.storage.from('attachments').remove(ps); } catch (e) {}
+    const { error } = await SB.from('projects').delete().eq('id', id); if (error) throw error;
+  },
+  async upload(fid, file) {
+    const { data: { session } } = await SB.auth.getSession();
+    const path = `${session.user.id}/${fid}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]+/g, '_')}`;
+    const { error } = await SB.storage.from('attachments').upload(path, file, { contentType: file.type || 'application/octet-stream' });
+    if (error) throw error; return { path };
+  },
+  async fileUrl(f) { const { data, error } = await SB.storage.from('attachments').createSignedUrl(f.path, 120); if (error) throw error; return data.signedUrl; },
+  async fileDel(f) { if (f.path) await SB.storage.from('attachments').remove([f.path]); },
 } : {
   async session() { return sessionStorage.getItem('sdlc_ok') === '1'; },
   async login(pw) { if (pw === CONFIG.DEMO_PASSWORD) { sessionStorage.setItem('sdlc_ok', '1'); return true; } return false; },
@@ -148,6 +160,9 @@ const api = SB ? {
     all.push({ id: nid, created_at: new Date().toISOString(), ...row }); lsWrite(all); return nid;
   },
   async remove(id) { lsWrite(lsRead().filter((r) => r.id !== id)); },
+  async upload(fid, file) { if (file.size > 700 * 1024) throw new Error('Mode demo: maks 700 KB'); return { dataUrl: await readAs(file) }; },
+  async fileUrl(f) { return f.dataUrl; },
+  async fileDel() {},
 };
 
 
@@ -242,6 +257,11 @@ const C = (k, l, o, d = []) => ({ t: 'chips', k, l, o, d });
 const H = (l, i = '') => ({ t: 'h', l, i });
 const L = (l, items) => ({ t: 'links', l, items });
 const N = (l) => ({ t: 'info', l });
+const F = (k, l) => ({ t: 'files', k, l });
+const MAX_MB = 5;
+const fmtSize = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB');
+const readAs = (file, how) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; how === 'text' ? r.readAsText(file) : r.readAsDataURL(file); });
+const TEXT_RE = /\.(txt|md|csv|json|html?|css|js|jsx|ts|tsx|xml|ya?ml|sql|py|log|ini)$/i;
 
 const TYPES = ['Website Portofolio Pribadi', 'Landing Page Perusahaan / B2B', 'Promotional Landing Page', 'Company Profile & Web App', 'Website E-Commerce (Toko Online)', 'Website Berita dan Media Informasi (News & Content Portal)', 'Blog Pribadi / Niche Blog', 'Website Edukasi & E-Learning (LMS)', 'Website Komunitas dan Forum Diskusi', 'Aplikasi Berbasis Web (Web Application / SaaS)'];
 const STACKS = ['Next.js (App Router & React)', 'React & TypeScript', 'Vue / Nuxt', 'Tailwind CSS', 'Framer Motion / GSAP', 'HTML5, CSS3 & Vanilla JS', 'Node.js / REST API / Supabase', 'Git, GitHub & Vercel / GitHub Pages', 'Figma (UI/UX & Design System)'];
@@ -267,6 +287,7 @@ const PAGES = [
     T('name', 'Nama Proyek / Website', 'Contoh: Portofolio / Toko Online'),
     S('type', 'Jenis Website', TYPES),
     A('summary', 'Ringkasan Singkat (produk apa & untuk siapa)', 'Jelaskan singkat produk ini dan untuk siapa'),
+    F('summary_files', 'Lampiran Ringkasan (opsional, file apa pun)'),
     H('Tech Stack & Metode'),
     C('stack', 'Tech Stack', STACKS, [STACKS[0], STACKS[1], STACKS[3], STACKS[7], STACKS[8]]),
     C('method', 'Metode Kerja', METHODS, [METHODS[0], METHODS[2], METHODS[3]]),
@@ -381,9 +402,10 @@ let sideOpen = window.innerWidth >= 1024;
 let timer = null, q = Promise.resolve();
 
 function newForm() {
-  const f = { _done: {} };
+  const f = { _done: {}, _fid: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) };
   PAGES.forEach((p) => p.f.forEach((x) => {
     if (x.t === 'chips') f[x.k] = [...x.d];
+    else if (x.t === 'files') f[x.k] = [];
     else if (x.t === 'select') f[x.k] = x.o[0];
     else if (x.k) f[x.k] = x.d || '';
   }));
@@ -401,6 +423,7 @@ function buildPrompt(f) {
       let v = '';
       if (x.t === 'chips') v = (f[x.k] || []).join(', ');
       else if (['text', 'area', 'select'].includes(x.t)) v = String(f[x.k] || '').trim();
+      else if (x.t === 'files') v = (f[x.k] || []).map((a) => `[Lampiran] ${a.name} (${fmtSize(a.size)})` + (a.text ? `\n${a.text}` : ' — file terlampir di aplikasi, isinya tidak ikut di .txt')).join('\n');
       else if (x.t === 'media') {
         const m = ['subject', 'object'].filter((k) => f['img_' + k]).map((k) => `- Foto ${k === 'subject' ? 'Subjek (Orang)' : 'Objek'}: [tertempel: ${f['img_' + k].label}]`);
         if (m.length) lines.push(...m);
@@ -536,6 +559,16 @@ function fieldHTML(x, f) {
     case 'select': return `<label class="lb">${esc(x.l)}</label><select data-k="${x.k}" class="field w-full rounded-full px-4 py-2.5 text-sm">${x.o.map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     case 'chips': return `<label class="lb">${esc(x.l)}</label><div class="flex flex-wrap gap-2">${x.o.map((o) => `<label class="chip"><input type="checkbox" data-k="${x.k}" data-v="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''} /><span>${esc(o)}</span></label>`).join('')}</div>`;
     case 'links': return `<label class="lb">${esc(x.l)}</label><div class="flex flex-wrap gap-2">${x.items.map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener noreferrer" class="btn-light px-3.5 py-1.5 text-xs">${esc(n)} ↗</a>`).join('')}</div>`;
+    case 'files': return `<label class="lb">${esc(x.l)}</label>
+      <div class="rounded-3xl border border-dashed border-neutral-900/30 bg-white/50 p-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" data-act="attach" data-k="${x.k}" class="btn-dark px-4 py-2 text-xs">+ Lampirkan File</button>
+          <span class="text-[11px] opacity-70">Semua jenis file • maks ${MAX_MB} MB per file</span>
+        </div>
+        <input type="file" multiple data-attach="${x.k}" class="hidden" />
+        <ul class="mt-3 space-y-1.5">${(v || []).map((a, i) => `<li class="flex items-center justify-between gap-2 rounded-full bg-white/70 px-3 py-1.5 text-xs"><span class="truncate font-semibold">${esc(a.name)} <span class="font-normal opacity-60">${fmtSize(a.size)}${a.text ? ' • isi ikut di prompt' : ''}</span></span><span class="flex shrink-0 gap-3"><button type="button" data-act="fopen" data-k="${x.k}" data-i="${i}" class="font-bold underline">Buka</button><button type="button" data-act="fdel" data-k="${x.k}" data-i="${i}" class="font-bold underline">Hapus</button></span></li>`).join('')}</ul>
+        <p id="fstat" class="mt-2 text-[11px]"></p>
+      </div>`;
     case 'media': return `<div class="mt-4 grid gap-4 sm:grid-cols-2">${['subject', 'object'].map((k) => { const im = f['img_' + k]; return `
       <div data-paste="${k}" tabindex="0" class="rounded-3xl border border-dashed border-neutral-900/30 bg-white/50 p-4">
         <div class="flex items-center justify-between gap-2"><b class="text-xs">${k === 'subject' ? 'Foto Subjek (Orang / Profil)' : 'Foto Objek (Produk / QR / Proyek)'}</b>
@@ -669,6 +702,31 @@ async function pickImage(kind) {
 }
 
 /* ================= EVENT ================= */
+async function attachFiles(k, files) {
+  for (const file of files) {
+    if (file.size > MAX_MB * 1048576) { alert(`"${file.name}" lebih dari ${MAX_MB} MB, dilewati.`); continue; }
+    const st = $('#fstat'); if (st) st.textContent = 'Mengunggah ' + file.name + '…';
+    try {
+      const meta = { name: file.name, size: file.size, type: file.type || '', ...(await api.upload(cur.form._fid, file)) };
+      if (file.type.startsWith('text/') || TEXT_RE.test(file.name)) {
+        let t = await readAs(file, 'text'); if (t.length > 8000) t = t.slice(0, 8000) + '\n… [dipotong]'; meta.text = t;
+      }
+      (cur.form[k] = cur.form[k] || []).push(meta); touch();
+    } catch (e) { console.error(e); alert('Gagal mengunggah ' + file.name + (e.message ? ': ' + e.message : '')); }
+  }
+  const y = window.scrollY; renderWizard(); window.scrollTo(0, y);
+}
+async function openFile(k, i) {
+  const f = cur.form[k][i]; if (!f) return;
+  try { const a = document.createElement('a'); a.href = await api.fileUrl(f); a.target = '_blank'; a.rel = 'noopener'; a.download = f.name; a.click(); }
+  catch (e) { alert('Gagal membuka file.'); }
+}
+async function delFile(k, i) {
+  const f = cur.form[k][i]; if (!f || !confirm('Hapus lampiran "' + f.name + '"?')) return;
+  try { await api.fileDel(f); } catch (e) { console.error(e); }
+  cur.form[k].splice(i, 1); touch();
+  const y = window.scrollY; renderWizard(); window.scrollTo(0, y);
+}
 app.addEventListener('click', async (e) => {
   const go_ = e.target.closest('[data-go]');
   if (go_ && cur && !cur.readonly) return go(+go_.dataset.go);
@@ -746,6 +804,23 @@ window.addEventListener('beforeunload', () => { if (cur && cur.dirty) flush(); }
 
 /* ================= MULAI ================= */
 (async () => { (await api.session()) ? viewHome() : viewLogin(); })();
+/* ================= LAMPIRAN FILE ================= */
+app.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]');
+  if (!b || !cur) return;
+  const a = b.dataset.act;
+  if (a === 'attach') return document.querySelector('[data-attach="' + b.dataset.k + '"]').click();
+  if (a === 'fopen') return openFile(b.dataset.k, +b.dataset.i);
+  if (a === 'fdel') return delFile(b.dataset.k, +b.dataset.i);
+});
+app.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.attach) {
+    const fl = [...t.files];
+    t.value = '';
+    attachFiles(t.dataset.attach, fl);
+  }
+});
 </script>
 </body>
 </html>
