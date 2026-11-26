@@ -135,18 +135,6 @@ const api = SB ? {
     const { data, error } = await SB.from('projects').insert(row).select('id').single(); if (error) throw error; return data.id;
   },
   async remove(id) { const { error } = await SB.from('projects').delete().eq('id', id); if (error) throw error; },
-  async remove(id) {
-    try { const { data } = await SB.from('projects').select('form').eq('id', id).single(); const ps = Object.values((data && data.form) || {}).filter(Array.isArray).flat().map((f) => f && f.path).filter(Boolean); if (ps.length) await SB.storage.from('attachments').remove(ps); } catch (e) {}
-    const { error } = await SB.from('projects').delete().eq('id', id); if (error) throw error;
-  },
-  async upload(fid, file) {
-    const { data: { session } } = await SB.auth.getSession();
-    const path = `${session.user.id}/${fid}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]+/g, '_')}`;
-    const { error } = await SB.storage.from('attachments').upload(path, file, { contentType: file.type || 'application/octet-stream' });
-    if (error) throw error; return { path };
-  },
-  async fileUrl(f) { const { data, error } = await SB.storage.from('attachments').createSignedUrl(f.path, 120); if (error) throw error; return data.signedUrl; },
-  async fileDel(f) { if (f.path) await SB.storage.from('attachments').remove([f.path]); },
 } : {
   async session() { return sessionStorage.getItem('sdlc_ok') === '1'; },
   async login(pw) { if (pw === CONFIG.DEMO_PASSWORD) { sessionStorage.setItem('sdlc_ok', '1'); return true; } return false; },
@@ -160,9 +148,6 @@ const api = SB ? {
     all.push({ id: nid, created_at: new Date().toISOString(), ...row }); lsWrite(all); return nid;
   },
   async remove(id) { lsWrite(lsRead().filter((r) => r.id !== id)); },
-  async upload(fid, file) { if (file.size > 700 * 1024) throw new Error('Mode demo: maks 700 KB'); return { dataUrl: await readAs(file) }; },
-  async fileUrl(f) { return f.dataUrl; },
-  async fileDel() {},
 };
 
 
@@ -226,6 +211,12 @@ const INFO = {
       <tr><td>3. Keyboard Navigation<br><span style="font-weight:400">(Navigasi Papan Ketik)</span></td><td>Kemampuan pengguna mengoperasikan seluruh fitur aplikasi <b>100% menggunakan keyboard</b> tanpa menyentuh <i>mouse</i> atau layar sentuh.</td><td>• <code>Tab</code> / <code>Shift + Tab</code>: Pindah ke elemen berikutnya / sebelumnya.<br>• <code>Enter</code> / <code>Space</code>: Mengaktifkan tombol, <i>link</i>, atau <i>checkbox</i>.<br>• <code>Esc</code>: Menutup jendela <i>Modal</i>, <i>Dropdown</i>, atau <i>Pop-up</i>.<br>• <b>Tombol Panah</b> ( <code>↑</code> <code>↓</code> <code>←</code> <code>→</code> ): Navigasi di dalam menu pilihan atau tab.</td></tr>
       <tr><td>4. ARIA<br><span style="font-weight:400">(<i>Accessible Rich Internet Applications</i>)</span></td><td>Atribut kode khusus pada elemen HTML/UI yang memberikan informasi tambahan kepada teknologi bantu seperti <i>Screen Reader</i> (pembaca layar untuk tunanetra) mengenai peran dan status suatu elemen.</td><td>• <code>aria-label</code>: Memberi nama pada tombol yang hanya berisi ikon (misal tombol ikon silang <code>X</code> diberi label <i>"Tutup jendela"</i> ).<br>• <code>aria-expanded</code>: Memberi tahu pembaca layar apakah menu <i>accordion</i> atau <i>dropdown</i> sedang terbuka ( <code>true</code> ) atau tertutup ( <code>false</code> ).<br>• <code>aria-live</code>: Mengumumkan pesan notifikasi atau pesan <i>error</i> secara otomatis saat muncul di layar.</td></tr>
     </table></div>` },
+  Asset: { t : 'Penjelasan 4 Pilar Teknis Accessibility', b: `
+      <p>• Keterbacaan: Ikon berukuran kecil (seperti favicon atau ikon aplikasi) umumnya lebih aman memakai efek sederhana agar tidak pecah atau kabur.</p>
+      <p>• Konsistensi: Gunakan ikon yang seragam dalam satu set (misal semua ikon berbasis garis tipis atau semua berbasis bentuk solid).</p>
+      <p>• Konteks: Pilih ikon yang sesuai dengan konteks fungsi (misal ikon <i>trash</i> untuk hapus, <i>plus</i> untuk tambah, <i>share</i> untuk bagikan).</p>
+      <p>• Lisensi: Pastikan ikon yang digunakan memiliki lisensi yang sesuai (misal <i>open source</i> atau <i>royalty free</i>) agar tidak melanggar hak cipta.</p>
+      </table></div>` },
   layout: { t: 'Penjelasan 4 Elemen Utama dalam Layout per Screen', b: `
     <div class="tw"><table>
       <tr><th>Elemen</th><th>Pengertian &amp; Fungsi</th><th>Contoh (Screen: Detail Event)</th></tr>
@@ -257,16 +248,11 @@ const C = (k, l, o, d = []) => ({ t: 'chips', k, l, o, d });
 const H = (l, i = '') => ({ t: 'h', l, i });
 const L = (l, items) => ({ t: 'links', l, items });
 const N = (l) => ({ t: 'info', l });
-const F = (k, l) => ({ t: 'files', k, l });
-const MAX_MB = 5;
 const fmtSize = (n) => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB');
-const readAs = (file, how) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; how === 'text' ? r.readAsText(file) : r.readAsDataURL(file); });
-const TEXT_RE = /\.(txt|md|csv|json|html?|css|js|jsx|ts|tsx|xml|ya?ml|sql|py|log|ini)$/i;
 
-const TYPES = ['Website Portofolio Pribadi', 'Landing Page Perusahaan / B2B', 'Promotional Landing Page', 'Company Profile & Web App', 'Website E-Commerce (Toko Online)', 'Website Berita dan Media Informasi (News & Content Portal)', 'Blog Pribadi / Niche Blog', 'Website Edukasi & E-Learning (LMS)', 'Website Komunitas dan Forum Diskusi', 'Aplikasi Berbasis Web (Web Application / SaaS)','Others'];
+const TYPES = ['Online CV','Website Portofolio Pribadi', 'Landing Page Perusahaan / B2B', 'Promotional Landing Page', 'Company Profile','Web App','Website E-Commerce (Toko Online)', 'Website Berita dan Media Informasi (News & Content Portal)', 'Blog Pribadi / Niche Blog', 'Website Edukasi & E-Learning (LMS)', 'Website Komunitas dan Forum Diskusi','Others'];
 const STACKS = ['HTML5, CSS3 & Vanilla JS', 'Tailwind CSS', 'Vue / Nuxt', 'React & TypeScript', 'Framer Motion / GSAP', 'Next.js (App Router & React)', 'Node.js / REST API / Supabase', 'Git, GitHub & Vercel / GitHub Pages', 'Figma (UI/UX & Design System)','Others'];
 const METHODS = ['Agile / Iterative Sprint (MVP dulu lalu penyempurnaan)', 'Kanban (To-Do, In Progress, Done)', 'Mobile-First & Component-Driven Design', 'AI-Assisted Vibe Coding + Manual Code Review','Others'];
-const SECS = ['Hero Section Utama', 'Profil / Tentang / Pendidikan', 'Layanan / Pengalaman Kerja', 'Keahlian / Portofolio Proyek', 'Kontak & Footer','Others'];
 const STYLES = ['Minimalis', 'Flat Design', 'Glassmorphism', 'Neumorphism (Soft UI)', 'Claymorphism', 'Brutalism / Neo-Brutalism', 'Typography-Driven', 'Editorial', 'Retro & Vintage', 'Ilustrasi / Freehand', 'Dark Mode','Others'];
 const SCROLLS = ['Standard Vertical Scroll', 'Horizontal Scroll', 'Infinite Scroll', 'Parallax Scrolling', 'Scroll-Triggered Animations', 'Scroll Snapping', 'Long Scrolling (storytelling)', 'Immersive 3D Scroll (Three.js / GSAP ScrollTrigger / Spline)','Others'];
 const LAYOUTS = ['Responsive Design', 'Adaptive Design', 'Fluid (Liquid) Design', 'Single Page', 'Statis', 'Dinamis','Others'];
@@ -276,6 +262,7 @@ const FITUR = ['Formulir Kontak / Hubungi Kami', 'Peta Lokasi / Google Maps', 'I
 const INTERACTIONS = ['Hover Effects', 'Click / Tap Animations', 'Scroll-Triggered Animations', 'Drag & Drop Interactions', 'Swipe Gestures', 'Parallax Scrolling Effects', 'Modal / Popup Windows', 'Accordion / Expandable Sections', 'Carousel / Slider Components', 'Infinite Scroll','Hero Entrance / Staggered Animation', 'Fade-In & Slide-Up on Scroll (Scroll Reveal)', 'Micro-interactions (Hover & Active States)', 'Sticky / Glassmorphism Navigation Bar', 'Skeleton Loading / Preloader','Hero Entrance / Staggered Animation', 'Fade-In & Slide-Up on Scroll (Scroll Reveal)', 'Micro-interactions (Hover & Active States)', 'Sticky / Glassmorphism Navigation Bar', 'Others']
 const SUBJECT = ['Cropping & Framing', 'Color Grading & Filters', 'Background Removal / Isolation', 'Retouching & Skin Smoothing', 'HDR & Exposure Blending', 'Panorama Stitching', 'Black & White Conversion', 'Lens Correction & Distortion Fix', 'Noise Reduction & Sharpening', 'Creative Compositing / Collage','Others'];
 const OBJECT = ['Clean-up & Isolation','Perspective & Scaling','Badges & Callouts','Color Consistency','Shadows & Reflections','Color Correction & Grading', 'Background Replacement', 'Retouching & Enhancement', 'HDR & Exposure Blending', 'Panorama Stitching', 'Black & White Conversion', 'Lens Correction & Distortion Fix', 'Noise Reduction & Sharpening', 'Creative Compositing / Collage','Others'];
+const WIREFRAMING = ['Navbar (Navigation Bar)', 'Hero Section','Social Proof','Fitur Utama (Key Features)','Testimoni','Footer','Content Section', 'Footer','Forms & Input Fields', 'Buttons & Call-to-Action (CTA)', 'Cards & Tiles', 'Modals / Popups', 'Tabs & Accordions', 'Lists & Tables', 'Search & Filter Components', 'Media Galleries (Images/Videos)', 'Maps & Location Components', 'Charts & Graphs', 'Notifications & Alerts','Others'];
 
 const TPL = {
   'Security Audit (pre-launch)': 'Berperanlah sebagai application security engineer yang audit pre-launch codebase ini. Review: autentikasi & session, otorisasi (user A bisa akses data user B?), secret/key/token hardcoded atau terekspos di client, injection (SQL/NoSQL/command/XSS), API route tanpa proteksi/validasi, input validation & sanitization, rate limiting/brute force, IDOR, CORS longgar/security header hilang/cookie flag tidak aman, dependency rentan, data sensitif bocor ke log/error. Tiap temuan: Severity (Critical/High/Medium/Low), file & baris, cara eksploitasi nyata, fix kode pasti. Urutkan berdasarkan severity. Jika satu kategori bersih, katakan eksplisit. JANGAN ubah kode sebelum saya approve.',
@@ -291,39 +278,35 @@ const PAGES = [
     H('Ringkasan & Identitas Proyek'),
     T('name', 'Nama Proyek / Website', 'Contoh: Portofolio / Toko Online'),
     S('type', 'Jenis Website', TYPES),
-    A('summary', 'Ringkasan Singkat (produk apa & untuk siapa)', 'Jelaskan singkat produk ini dan untuk siapa'),
-    F('summary_files', 'Lampiran Ringkasan (opsional, file apa pun)'),
+    A('summary', 'Ringkasan Singkat', 'Contoh: Website portofolio pribadi untuk menampilkan karya desain grafis, dengan fitur kontak dan integrasi media sosial.', '', 10),
     H('Tech Stack & Metode'),
     C('stack', 'Tech Stack', STACKS, [STACKS[0],STACKS[1]]),
     C('method', 'Metode Kerja', METHODS, ['']),
-    A('plan_note', 'Catatan Tambahan Perencanaan & Stack', 'Stack lain, batasan teknis, alur kerja...', '', 2),
+    A('plan_note', 'Catatan Tambahan Perencanaan & Stack', 'Stack lain, batasan teknis, alur kerja...', '', 6),
   ] },
   { n: 'Tujuan, Audiens & Kebutuhan', h: 'Problem, Goals, Target User & Kebutuhan Pelengkap', f: [
     H('Problem Statement'),
-    A('problem', 'Masalah Utama', 'Masalah nyata yang dihadapi pengguna/bisnis', '', 2),
-    A('evidence', 'Bukti / Dasar Riset', 'Riset pengguna, feedback, analitik, observasi langsung', '', 2),
+    A('problem', 'Masalah Utama', 'Masalah nyata yang dihadapi pengguna/bisnis', '', 6),
+    A('evidence', 'Bukti / Dasar Riset', 'Riset pengguna, feedback, analitik, observasi langsung', '', 6),
     H('Goals'),
     A('goals', 'Target Penyelesaian (satu baris per target)', 'Contoh: menyampaikan nilai utama dengan jelas\nMemudahkan pengunjung menghubungi'),
     C('goal_type', 'Tujuan Utama Website', GOALS,''),
     H('Target User'),
-    T('segment', 'Segmen / Peran', 'Pengunjung umum, perekrut, calon klien, admin...'),
-    A('pain', 'Pain Points', 'Hambatan yang sering dialami', '', 2),
-    A('context', 'Konteks Penggunaan', 'Kapan, di mana, lewat perangkat apa', '', 2),
+    A('segment', 'Segmen / Peran', 'Pengunjung umum, perekrut, calon klien, admin...','', 3),
+    A('pain', 'Pain Points', 'Hambatan yang sering dialami', '', 3),
+    A('context', 'Konteks Penggunaan', 'Kapan, di mana, lewat perangkat apa', '', 3),
     A('stories', 'User Stories', 'US-1: Sebagai [peran], saya ingin [aksi], agar [manfaat].\nUS-2: Sebagai [peran], saya ingin [aksi], agar [manfaat].\nUS-3: ...', '', 3),
     H('Kebutuhan Pelengkap'),
-    { ...T('tagline', 'Slogan / Tagline'), i: 'tagline' },
-    T('references', 'Website Referensi (link / nama)'),
+    { ...A('tagline', 'Slogan / Tagline','','',3), i: 'tagline' },
+    A('references', 'Website Referensi (link / nama)','', '', 3),
     T('timeline', 'Target Waktu Selesai', 'Contoh: 2 minggu / akhir bulan'),
     S('hosting', 'Domain & Hosting', ['Belum ditentukan', 'GitHub Pages (gratis)', 'Vercel / Netlify (gratis)', 'Domain & hosting sendiri (.com / .id)']),
     C('feats', 'Fitur Khusus', FITUR,''),
     C('ints', 'Integrasi & Layanan Pihak Ketiga', [['Tombol WhatsApp'], 'Google Analytics', 'Google Maps',['Form kontak / email'], 'Payment gateway', 'Newsletter / email marketing', 'SEO dasar & meta tag', 'Link media sosial']),
-    C('assets', 'Aset yang Sudah Tersedia', ['Logo sudah ada', 'Foto sudah ada', 'Teks / copywriting sudah siap', 'Belum ada aset (buatkan placeholder)']),
-    A('avoid', 'Hal yang TIDAK Diinginkan', 'Contoh: jangan terlalu ramai, hindari pop-up...', '', 2),
-    A('extra', 'Pertanyaan / Catatan Lain untuk AI', '', '', 2),
+    A('avoid', 'Hal yang TIDAK Diinginkan', 'Contoh: jangan terlalu ramai, hindari pop-up...', '', 6),
+    A('extra', 'Pertanyaan / Catatan Lain untuk AI', '', '', 6),
   ] },
-  { n: 'PRD & Konten', h: 'Struktur Section, Fitur, Scope & Requirements', f: [
-    H('Struktur Section'),
-    C('sections', 'Section Terpilih', SECS, SECS),
+  { n: 'PRD & Konten', h: 'Scope & Requirements', f: [
     H('Pembagian Fitur', 'mvp'),
     A('V1 / MVP', 'V1 / MVP (Rilis Awal Wajib)', 'Satu fitur per baris', '', 3),
     A('V2', 'V2 (Iterasi Berikutnya)', '', '', 2),
@@ -352,6 +335,7 @@ const PAGES = [
   ] },
   { n: 'Spesifikasi UI/UX', h: 'Desain, Scroll, Layout, Komponen & Aksesibilitas', f: [
     C('theme', 'Mode Tema', ['Light / Dark Mode Switch']),
+    C('WIREFRAMING', 'Tahap Perancangan', WIREFRAMING, ['Navbar (Navigation Bar)']),
     C('navi', 'Navigasi', NAVIGASI, ['Top Navigation Bar']),
     H('Warna'),
     L('Tools Warna', [['Realtime Colors', 'https://www.realtimecolors.com/'], ['Coolors', 'https://coolors.co/'], ['Color Hunt', 'https://colorhunt.co/'], ['Adobe Color', 'https://color.adobe.com/'], ['WebAIM Contrast', 'https://webaim.org/resources/contrastchecker/']]),
@@ -381,7 +365,13 @@ const PAGES = [
     C('object', 'Jenis Foto Objek (Produk / Barang)', OBJECT, ''),
     A('subject_note', 'Catatan posisi foto subjek', '', '', 2),
     A('object_note', 'Catatan posisi foto objek', '', '', 2),
-    L('Inspirasi Desain', [['UI Style Guide', 'https://www.uistyleguide.com/'], ['Website Design Styles', 'https://www.appliedaiacademy.app/resources/website-design-styles'], ['One Page Love', 'https://onepagelove.com/style/glassmorphism'], ['Siteinspire', 'https://www.siteinspire.com/'], ['A1 Gallery', 'https://www.a1.gallery/'], ['Recent Design', 'https://recent.design/?ref=godly&category=web'], ['Dribbble', 'https://dribbble.com/tags/web-design-inspiration'], ['Land-book', 'https://land-book.com/'], ['Awwwards', 'https://www.awwwards.com/']]),
+    H('Assets'),
+    C('assets', 'Penambahan Asset', ['Tambahkan Logo', 'Tambahkan Icon', 'Tambahkan Ilustrasi', 'Tambahkan Icon']),
+    C('effect', 'Efek Visual Statis (Desain Grafis & UI)', ['Gradient Color', 'Drop Shadow', 'Inner Shadow','Glossy & 3D','Efek Blur & Bokeh','Layering Elemen','Efek Grunge','Efek Glitch', 'Efek Fade'], ''),
+    C('animation', 'Efek Gerak & Animasi (Motion & Interaksi)', ['Light Sweep','Light Shine','Scale','Zoom','Squash and Stretch','Reveal','Masking','Rotasi & Transisi Halus','Fade In/Out', 'Slide In/Out', 'Bounce', 'Spin', 'Pulse'], ''),
+    A('Logo_note', 'Catatan tambahan untuk Logo', '', '', 2),
+    { ...A('Icon_note', 'Catatan tambahan untuk Icon', '', '', 2), i :'Asset' },
+    L('Inspirasi Desain', [['UI Style Guide', 'https://www.uistyleguide.com/'], ['Website Design Styles', 'https://www.appliedaiacademy.app/resources/website-design-styles'], ['One Page Love', 'https://onepagelove.com/style/glassmorphism'], ['Siteinspire', 'https://www.siteinspire.com/'], ['A1 Gallery', 'https://www.a1.gallery/'], ['Recent Design', 'https://recent.design/?ref=godly&category=web'], ['Dribbble', 'https://dribbble.com/tags/web-design-inspiration'], ['Land-book', 'https://land-book.com/'], ['Awwwards', 'https://www.awwwards.com/'],['Threeui','https://threeui.com/']]),
   ] },
   { n: 'QA & Rilis', h: 'Pengujian, Peluncuran & Template Lanjutan', f: [
     C('qa', 'Checklist Pengujian & Peluncuran', ['Cek tampilan responsif (HP, Tablet, Desktop)', 'Uji tombol, link, bahasa, & tema', 'Push kode ke GitHub / Deploy', 'Verifikasi link publik di mode Incognito']),
@@ -391,13 +381,19 @@ const PAGES = [
   ] },
 ];
 const SUMMARY_IDX = PAGES.length; // 7
-const PROMPT_HEAD = `Kamu adalah Senior Product Engineer & UI/UX Developer.
-Gunakan dokumen di bawah ini sebagai sumber acuan utama. Jangan menambahkan fitur di luar bagian "IN" tanpa konfirmasi.
-
-Tugasmu:
-1. Periksa singkat apakah ada bagian yang ambigu atau perlu dicatat di Open Questions.
-2. Bangun implementasi awal fitur prioritas MVP (P0) secara bersih, modular, dan responsif untuk HP maupun desktop.
-3. Sertakan penanganan Failure State yang jelas serta struktur kode yang mudah dirawat dan dikembangkan ke v2.`;
+const ROLE = {
+  'Landing Page Perusahaan / B2B': 'Sekaligus Demand Generation Manager.',
+  'Promotional Landing Page': 'Sekaligus Digital Campaign Specialist.',
+  'Company Profile': 'Sekaligus Web Project Manager.',
+  'Web App': 'Sekaligus Product Manager.',
+  'Website E-Commerce (Toko Online)': 'Sekaligus E-Commerce Manager.',
+  'Website Berita dan Media Informasi (News & Content Portal)': 'Sekaligus Digital Managing Editor.',
+  'Blog Pribadi / Niche Blog': 'Sekaligus Content Strategist.',
+  'Website Edukasi & E-Learning (LMS)': 'Sekaligus Instructional Designer / Learning Experience Designer.',
+  'Website Komunitas dan Forum Diskusi': 'Sekaligus Community Manager.',
+};
+const head = (f) => `Kamu adalah Senior Product Engineer & UI/UX Developer${ROLE[f.type] ? ' ' + ROLE[f.type] : '.'}
+Gunakan dokumen di bawah ini sebagai sumber acuan untuk membuat website.`;
 
 /* ================= STATE ================= */
 let cur = null;          // {id, form, page, dirty, completed_at}
@@ -408,7 +404,6 @@ function newForm() {
   const f = { _done: {}, _fid: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) };
   PAGES.forEach((p) => p.f.forEach((x) => {
     if (x.t === 'chips') f[x.k] = [...x.d];
-    else if (x.t === 'files') f[x.k] = [];
     else if (x.t === 'select') f[x.k] = x.o[0];
     else if (x.k) f[x.k] = x.d || '';
   }));
@@ -417,21 +412,26 @@ function newForm() {
 const pct = (f) => Math.min(100, Math.round((Object.keys(f._done || {}).filter((k) => f._done[k] && +k < PAGES.length).length / PAGES.length) * 100));
 
 /* ================= PROMPT ================= */
+function chipText(f, x) {
+  const oth = (((f._oth || {})[x.k]) || '').trim(), notes = [];
+  const names = (f[x.k] || []).filter(Boolean).map((o) => {
+    if (o === 'Others') return oth ? 'Lainnya: ' + oth : '';
+    const n = (((f._notes || {})[x.k + '|' + o]) || '').trim();
+    if (n) notes.push('Catatan ' + o + ': ' + n);
+    return o;
+  }).filter(Boolean);
+  return [names.join(', '), ...notes].filter(Boolean).join('\n');
+}
 function buildPrompt(f) {
-  const out = [PROMPT_HEAD];  
+  const out = [head(f)];
   PAGES.forEach((pg, i) => {
     const lines = []; let hd = null;
     pg.f.forEach((x) => {
       if (x.t === 'h') { hd = x.l; return; }
       let v = '';
-      if (x.t === 'chips') v = (f[x.k] || []).join(', ');
-      else if (['text', 'area', 'select'].includes(x.t)) v = String(f[x.k] || '').trim();
-      else if (x.t === 'files') v = (f[x.k] || []).map((a) => `[Lampiran] ${a.name} (${fmtSize(a.size)})` + (a.text ? `\n${a.text}` : ' — file terlampir di aplikasi, isinya tidak ikut di .txt')).join('\n');
-      else if (x.t === 'media') {
-        const m = ['subject', 'object'].filter((k) => f['img_' + k]).map((k) => `- Foto ${k === 'subject' ? 'Subjek (Orang)' : 'Objek'}: [tertempel: ${f['img_' + k].label}]`);
-        if (m.length) lines.push(...m);
-        return;
-      }
+      if (x.t === 'chips') v = chipText(f, x);
+      else if (x.t === 'select') { v = String(f[x.k] || '').trim(); if (v === 'Others') v = 'Lainnya: ' + ((((f._oth || {})[x.k]) || '').trim() || '-'); }
+      else if (x.t === 'text' || x.t === 'area') v = String(f[x.k] || '').trim();
       if (!v) return;
       if (hd) { lines.push('\n### ' + hd); hd = null; }
       lines.push(v.includes('\n') ? `- ${x.l}:\n${v.split('\n').map((s) => '  ' + s).join('\n')}` : `- ${x.l}: ${v}`);
@@ -541,6 +541,7 @@ async function viewHome() {
           </div>
           <div class="flex gap-2">
             <button data-act="detail" data-id="${r.id}" class="btn-dark px-4 py-2 text-xs">Detail</button>
+            ${r.percent < 100 ? `<button data-act="edit" data-id="${r.id}" class="btn-light px-4 py-2 text-xs">Edit</button>` : ''}
             <button data-act="remove" data-id="${r.id}" class="btn-light px-4 py-2 text-xs">Remove</button>
           </div>
         </div>`).join('')}</div>`
@@ -559,28 +560,15 @@ function fieldHTML(x, f) {
     case 'info': return `<p class="mt-3 text-xs text-neutral-600">${esc(x.l)}</p>`;
     case 'text': return `<label class="lb">${esc(x.l)}${x.i ? INFO_ICON(x.i) : ''}</label><input data-k="${x.k}" value="${esc(v)}" placeholder="${esc(x.p)}" class="field w-full rounded-full px-4 py-2.5 text-sm" />`;
     case 'area': return `<label class="lb">${esc(x.l)}${x.i ? INFO_ICON(x.i) : ''}</label><textarea data-k="${x.k}" rows="${x.r}" placeholder="${esc(x.p)}" class="field w-full rounded-3xl px-4 py-2.5 text-sm">${esc(v)}</textarea>`;
-    case 'select': return `<label class="lb">${esc(x.l)}</label><select data-k="${x.k}" class="field w-full rounded-full px-4 py-2.5 text-sm">${x.o.map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-    case 'chips': return `<label class="lb">${esc(x.l)}</label><div class="flex flex-wrap gap-2">${x.o.map((o) => `<label class="chip"><input type="checkbox" data-k="${x.k}" data-v="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''} /><span>${esc(o)}</span></label>`).join('')}</div>`;
+    case 'select': return `<label class="lb">${esc(x.l)}</label><select data-k="${x.k}" class="field w-full rounded-full px-4 py-2.5 text-sm">${x.o.map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>${v === 'Others' ? `<input data-oth="${x.k}" value="${esc((f._oth || {})[x.k] || '')}" placeholder="Others: tulis manual di sini..." class="field mt-2 w-full rounded-full px-4 py-2.5 text-sm" />` : ''}`;
+    case 'chips': {
+      const opts = [...new Set([...x.o.map(String), 'Others'])], sel = v || [], hideN = cur && cur.nh && cur.nh[cur.page];
+      const on = opts.filter((o) => sel.includes(o) && o !== 'Others');
+      return `<label class="lb">${esc(x.l)}${x.i ? INFO_ICON(x.i) : ''}</label><div class="flex flex-wrap gap-2">${opts.map((o) => `<label class="chip"><input type="checkbox" data-k="${x.k}" data-v="${esc(o)}" ${sel.includes(o) ? 'checked' : ''} /><span>${esc(o)}</span></label>`).join('')}</div>`
+        + (sel.includes('Others') ? `<input data-oth="${x.k}" value="${esc((f._oth || {})[x.k] || '')}" placeholder="Others: tulis manual di sini..." class="field mt-2 w-full rounded-full px-4 py-2.5 text-sm" />` : '')
+        + (!hideN && on.length ? `<div class="mt-2 space-y-1.5">${on.map((o) => `<div class="flex items-center gap-2"><span class="w-2/5 shrink-0 truncate text-[11px] font-semibold opacity-80" title="${esc(o)}">${esc(o)}</span><input data-note="${x.k}" data-v="${esc(o)}" value="${esc(((f._notes || {})[x.k + '|' + o]) || '')}" placeholder="Catatan / keterangan tambahan..." class="field w-full rounded-full px-3 py-1.5 text-xs" /></div>`).join('')}</div>` : '');
+    }
     case 'links': return `<label class="lb">${esc(x.l)}</label><div class="flex flex-wrap gap-2">${x.items.map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener noreferrer" class="btn-light px-3.5 py-1.5 text-xs">${esc(n)} ↗</a>`).join('')}</div>`;
-    case 'files': return `<label class="lb">${esc(x.l)}</label>
-      <div class="rounded-3xl border border-dashed border-neutral-900/30 bg-white/50 p-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" data-act="attach" data-k="${x.k}" class="btn-dark px-4 py-2 text-xs">+ Lampirkan File</button>
-          <span class="text-[11px] opacity-70">Semua jenis file • maks ${MAX_MB} MB per file</span>
-        </div>
-        <input type="file" multiple data-attach="${x.k}" class="hidden" />
-        <ul class="mt-3 space-y-1.5">${(v || []).map((a, i) => `<li class="flex items-center justify-between gap-2 rounded-full bg-white/70 px-3 py-1.5 text-xs"><span class="truncate font-semibold">${esc(a.name)} <span class="font-normal opacity-60">${fmtSize(a.size)}${a.text ? ' • isi ikut di prompt' : ''}</span></span><span class="flex shrink-0 gap-3"><button type="button" data-act="fopen" data-k="${x.k}" data-i="${i}" class="font-bold underline">Buka</button><button type="button" data-act="fdel" data-k="${x.k}" data-i="${i}" class="font-bold underline">Hapus</button></span></li>`).join('')}</ul>
-        <p id="fstat" class="mt-2 text-[11px]"></p>
-      </div>`;
-    case 'media': return `<div class="mt-4 grid gap-4 sm:grid-cols-2">${['subject', 'object'].map((k) => { const im = f['img_' + k]; return `
-      <div data-paste="${k}" tabindex="0" class="rounded-3xl border border-dashed border-neutral-900/30 bg-white/50 p-4">
-        <div class="flex items-center justify-between gap-2"><b class="text-xs">${k === 'subject' ? 'Foto Subjek (Orang / Profil)' : 'Foto Objek (Produk / QR / Proyek)'}</b>
-        <button type="button" data-act="pick" data-kind="${k}" class="btn-dark px-3 py-1.5 text-[11px]">Tempel / Pilih</button></div>
-        <input type="file" accept="image/*" data-file="${k}" class="hidden" />
-        ${im ? `<img src="${im.dataUrl}" alt="" class="mt-3 h-36 w-full rounded-2xl ${k === 'object' ? 'bg-white object-contain p-2' : 'object-cover'}" />
-        <div class="mt-2 flex justify-between text-[11px] text-neutral-600"><span>${esc(im.label)}</span><button type="button" data-act="clear" data-kind="${k}" class="font-bold underline">Hapus</button></div>`
-        : '<p class="mt-3 text-[11px] text-neutral-500">Klik kotak ini lalu tempel (Ctrl+V), atau pilih file.</p>'}
-      </div>`; }).join('')}</div>`;
   }
   return '';
 }
@@ -633,6 +621,7 @@ function detailHTML(f) {
         <button data-act="copy" class="btn-light px-5 py-2.5 text-xs">Salin Prompt</button>
         <button data-act="tohome" class="btn-light px-5 py-2.5 text-xs">Simpan &amp; ke Home</button>
         <button data-act="clone" class="btn-light px-5 py-2.5 text-xs">Salin Project</button>
+        ${p < 100 ? '<button data-act="edit" class="btn-dark px-5 py-2.5 text-xs">✎ Edit</button>' : ''}
       </div>
     </section>
   </div></div>`;
@@ -658,8 +647,13 @@ function renderWizard() {
       </aside>
       <section class="glass min-w-0 flex-1 rounded-[28px] p-5 sm:p-7">
         ${last ? summaryHTML(f) : `
-          <span class="text-[11px] font-extrabold uppercase tracking-wider text-neutral-500">0${i + 1}. ${esc(pg.n)}</span>
-          <h2 class="text-xl font-extrabold">${esc(pg.h)}</h2>
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-neutral-500">0${i + 1}. ${esc(pg.n)}</span>
+              <h2 class="text-xl font-extrabold">${esc(pg.h)}</h2>
+            </div>
+            <button data-act="notes" class="btn-light px-3.5 py-1.5 text-[11px]">${cur.nh && cur.nh[i] ? '▸ Tampilkan Catatan' : '▾ Sembunyikan Catatan'}</button>
+          </div>
           <div>${pg.f.map((x) => fieldHTML(x, f)).join('')}</div>`}
         <div class="mt-8 flex flex-wrap items-center gap-2 border-t border-neutral-900/10 pt-4">
           ${i === 0 ? '<button data-act="tohome" class="btn-light px-5 py-2.5 text-xs">⌂ Back</button>' : ''}
@@ -678,58 +672,8 @@ function go(n) {
   if (window.innerWidth < 1024) sideOpen = false;
 }
 
-/* ================= FOTO ================= */
-function processImage(blob, kind) {
-  const r = new FileReader();
-  r.onload = (ev) => {
-    const img = new Image();
-    img.onload = () => {
-      const max = 600; let { width: w, height: h } = img;
-      if (w > max || h > max) { if (w > h) { h = Math.round((h * max) / w); w = max; } else { w = Math.round((w * max) / h); h = max; } }
-      const c = document.createElement('canvas'); c.width = w; c.height = h;
-      c.getContext('2d').drawImage(img, 0, 0, w, h);
-      const d = c.toDataURL('image/jpeg', 0.7);
-      cur.form['img_' + kind] = { dataUrl: d, label: `Gambar tertempel (${w}x${h}px, ~${Math.round((d.length * 3) / 4 / 1024)}KB)` };
-      touch(); renderWizard();
-    };
-    img.src = ev.target.result;
-  };
-  r.readAsDataURL(blob);
-}
-async function pickImage(kind) {
-  try {
-    const items = await navigator.clipboard.read();
-    for (const it of items) { const t = it.types.find((x) => x.startsWith('image/')); if (t) return processImage(await it.getType(t), kind); }
-  } catch (e) {}
-  document.querySelector(`[data-file="${kind}"]`).click();
-}
-
 /* ================= EVENT ================= */
-async function attachFiles(k, files) {
-  for (const file of files) {
-    if (file.size > MAX_MB * 1048576) { alert(`"${file.name}" lebih dari ${MAX_MB} MB, dilewati.`); continue; }
-    const st = $('#fstat'); if (st) st.textContent = 'Mengunggah ' + file.name + '…';
-    try {
-      const meta = { name: file.name, size: file.size, type: file.type || '', ...(await api.upload(cur.form._fid, file)) };
-      if (file.type.startsWith('text/') || TEXT_RE.test(file.name)) {
-        let t = await readAs(file, 'text'); if (t.length > 8000) t = t.slice(0, 8000) + '\n… [dipotong]'; meta.text = t;
-      }
-      (cur.form[k] = cur.form[k] || []).push(meta); touch();
-    } catch (e) { console.error(e); alert('Gagal mengunggah ' + file.name + (e.message ? ': ' + e.message : '')); }
-  }
-  const y = window.scrollY; renderWizard(); window.scrollTo(0, y);
-}
-async function openFile(k, i) {
-  const f = cur.form[k][i]; if (!f) return;
-  try { const a = document.createElement('a'); a.href = await api.fileUrl(f); a.target = '_blank'; a.rel = 'noopener'; a.download = f.name; a.click(); }
-  catch (e) { alert('Gagal membuka file.'); }
-}
-async function delFile(k, i) {
-  const f = cur.form[k][i]; if (!f || !confirm('Hapus lampiran "' + f.name + '"?')) return;
-  try { await api.fileDel(f); } catch (e) { console.error(e); }
-  cur.form[k].splice(i, 1); touch();
-  const y = window.scrollY; renderWizard(); window.scrollTo(0, y);
-}
+
 app.addEventListener('click', async (e) => {
   const go_ = e.target.closest('[data-go]');
   if (go_ && cur && !cur.readonly) return go(+go_.dataset.go);
@@ -764,8 +708,6 @@ app.addEventListener('click', async (e) => {
   if (a === 'prev') return go(cur.page - 1);
   if (a === 'next') return go(cur.page + 1);
   if (a === 'done') { cur.form._done[cur.page] = !cur.form._done[cur.page]; touch(); return renderWizard(); }
-  if (a === 'pick') return pickImage(kind);
-  if (a === 'clear') { delete cur.form['img_' + kind]; touch(); return renderWizard(); }
   if (a === 'copy') { await navigator.clipboard.writeText(buildPrompt(cur.form)); b.textContent = 'Tersalin!'; return setTimeout(() => (b.textContent = 'Salin Prompt'), 1500); }
   if (a === 'download') {
     const n = (cur.form.name || 'blueprint').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'blueprint';
@@ -782,18 +724,10 @@ app.addEventListener('input', (e) => {
 });
 app.addEventListener('change', (e) => {
   const t = e.target;
-  if (t.dataset.file && t.files[0]) return processImage(t.files[0], t.dataset.file);
   if (!cur || !t.dataset.k || t.type !== 'checkbox') return;
   const arr = cur.form[t.dataset.k] || [];
   cur.form[t.dataset.k] = t.checked ? [...new Set([...arr, t.dataset.v])] : arr.filter((x) => x !== t.dataset.v);
   touch();
-});
-app.addEventListener('paste', (e) => {
-  const box = e.target.closest && e.target.closest('[data-paste]');
-  if (!box || !cur) return;
-  for (const it of e.clipboardData?.items || []) {
-    if (it.type.startsWith('image/')) { e.preventDefault(); const bl = it.getAsFile(); if (bl) processImage(bl, box.dataset.paste); break; }
-  }
 });
 app.addEventListener('submit', async (e) => {
   if (e.target.id !== 'lf') return;
@@ -807,22 +741,35 @@ window.addEventListener('beforeunload', () => { if (cur && cur.dirty) flush(); }
 
 /* ================= MULAI ================= */
 (async () => { (await api.session()) ? viewHome() : viewLogin(); })();
-/* ================= LAMPIRAN FILE ================= */
-app.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-act]');
-  if (!b || !cur) return;
+
+/* ================= FITUR BARU: EDIT, CATATAN, OTHERS ================= */
+app.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
-  if (a === 'attach') return document.querySelector('[data-attach="' + b.dataset.k + '"]').click();
-  if (a === 'fopen') return openFile(b.dataset.k, +b.dataset.i);
-  if (a === 'fdel') return delFile(b.dataset.k, +b.dataset.i);
+  if (a === 'edit') {
+    if (cur && cur.readonly) { cur.readonly = false; cur.page = 0; renderWizard(); window.scrollTo({ top: 0 }); return; }
+    try {
+      const r = await api.get(b.dataset.id);
+      cur = { id: r.id, form: { ...newForm(), ...r.form, _done: r.form._done || {} }, page: 0, dirty: false, completed_at: r.completed_at };
+      renderWizard(); window.scrollTo({ top: 0 });
+    } catch (err) { alert('Gagal membuka project.'); }
+    return;
+  }
+  if (a === 'notes' && cur) {
+    cur.nh = cur.nh || {}; cur.nh[cur.page] = !cur.nh[cur.page];
+    const y = window.scrollY; renderWizard(); window.scrollTo(0, y);
+  }
+});
+app.addEventListener('input', (e) => {
+  const t = e.target;
+  if (!cur || cur.readonly) return;
+  if (t.dataset.note) { (cur.form._notes = cur.form._notes || {})[t.dataset.note + '|' + t.dataset.v] = t.value; touch(); }
+  else if (t.dataset.oth) { (cur.form._oth = cur.form._oth || {})[t.dataset.oth] = t.value; touch(); }
 });
 app.addEventListener('change', (e) => {
   const t = e.target;
-  if (t.dataset.attach) {
-    const fl = [...t.files];
-    t.value = '';
-    attachFiles(t.dataset.attach, fl);
-  }
+  if (!cur || cur.readonly || !t.dataset.k) return;
+  if (t.type === 'checkbox' || t.tagName === 'SELECT') { const y = window.scrollY; renderWizard(); window.scrollTo(0, y); }
 });
 </script>
 </body>
